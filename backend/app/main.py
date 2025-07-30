@@ -30,8 +30,17 @@ class ProjectResource(Resource):
     def get(self, project_id=None):
         if project_id:
             proj = next((p for p in projects if p['id'] == project_id), None)
-            return proj if proj else {"error": "Not found"}, 404
-        return projects
+            if proj:
+                proj_tasks = [t for t in tasks if t.get("project_id")
+                              == project_id]
+                proj["tasks"] = proj_tasks
+                return proj
+            return {"error": "Not found"}, 404
+        filters = request.args
+        results = projects
+        for key, value in filters.items():
+            results = [p for p in results if str(p.get(key)) == value]
+        return results
 
     def post(self):
         data = request.get_json()
@@ -48,14 +57,6 @@ class TaskResource(Resource):
         new_task = {**data, "id": len(tasks) + 1}
         tasks.append(new_task)
         return new_task, 201
-
-
-def retrieve_project():
-    pass
-
-
-def query_project():
-    pass
 
 
 api.add_resource(ProjectResource, "/projects", "/projects/<int:project_id>")
