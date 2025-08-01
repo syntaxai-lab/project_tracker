@@ -1,5 +1,6 @@
 from flask import Flask, request
 from flask_restful import Api, Resource
+from datetime import datetime
 
 
 """"1. Create a new project with the fields: name, description,
@@ -15,6 +16,8 @@ api = Api(app)
 
 projects = []
 tasks = []
+EXPECTED_PROJECT_FIELDS = ["name", "description", "start_date", "end_date", "status"]
+EXPECTED_TASK_FIELDS = ["title", "assigned_to", "status", "due_date", "project_id"]
 
 
 class Project():
@@ -29,7 +32,7 @@ class Project():
 class ProjectResource(Resource):
     def get(self, project_id=None):
         if project_id:
-            proj = next((p for p in projects if p['id'] == project_id), None)
+            proj = next((p.casefold() for p in projects if p['id'] == project_id), None)
             if proj:
                 proj_tasks = [t for t in tasks if t.get("project_id")
                               == project_id]
@@ -39,13 +42,19 @@ class ProjectResource(Resource):
         filters = request.args
         results = projects
         for key, value in filters.items():
-            results = [p for p in results if str(p.get(key)) == value]
+            results = [p for p in results if str(p.get(key)).lower() ==
+                       value.lower()]
         return results
 
     def post(self):
-        data = request.get_json()
-        proj = Project(**data)  # instantiate
-        new_project = proj.__dict__  # turn into dict
+        raw_data = request.get_json() or {}
+        project_data = normalize_input(raw_data, EXPECTED_PROJECT_FIELDS)
+        error_msg = validate_project_data(project_data)
+        if error_msg:
+            return {"error": error_msg}, 400
+
+        proj = Project(**project_data)
+        new_project = proj.__dict__
         new_project['id'] = len(projects) + 1
         projects.append(new_project)
         return new_project, 201
@@ -53,27 +62,84 @@ class ProjectResource(Resource):
 
 class TaskResource(Resource):
     def post(self):
-        data = request.get_json()
-        new_task = {**data, "id": len(tasks) + 1}
+        raw_data = request.get_json() or {}
+        task_data = normalize_input(raw_data, EXPECTED_TASK_FIELDS)
+        error_msg = validate_task_data(task_data)
+        if error_msg:
+            return {"error": error_msg}, 400
+
+        new_task = {**task_data, "id": len(tasks) + 1}
         tasks.append(new_task)
         return new_task, 201
 
+    def get(self, task_id=None, project_id=None):
+        if task_id:
+            task = next((t for t in tasks if t["id"] == task_id), None)
+            if task:
+                return task
+            return {"error": "Task not found"}, 404
+        if project_id:
+            project_exists = any(p["id"] == project_id for p in projects)
+            if not project_exists:
+                return {"error": "Project not found"}, 404
+
+            project_tasks = [t for t in tasks if t.get("project_id") == project_id]
+            return project_tasks
+        # Otherwise return all (with optional filters)
+        filters = request.args
+        results = tasks
+        for key, value in filters.items():
+            results = [t for t in results if str(t.get(key)).lower()
+                       == value.lower()]
+        return results
+
+
+def normalize_input(data, expected_fields):
+    """Normalize keys to lowercase and map to expected fields."""
+    normalized = {}
+    for key, value in data.items():
+        key_lower = key.lower()
+        if key_lower in expected_fields:
+            normalized[key_lower] = value
+    return normalized
+
+
+def validate_project_data(data):
+    """Validate required fields and date formats."""
+    required_fields = ["name", "description", "start_date", "end_date"]
+    for field in required_fields:
+        if field not in data:
+            return f"Missing or Incorrect required field: {field}"
+    # Validate date format
+    for date_field in ["start_date", "end_date"]:
+        try:
+            datetime.strptime(data[date_field], "%Y-%m-%d")
+        except ValueError:
+            return f"Invalid date format for {date_field}. \
+        Expected YYYY-MM-DD."
+    return None
+
+
+def validate_task_data(data):
+    """Validate required fields and date formats."""
+    required_fields = ["title", "assigned_to", "due_date", "project_id"]
+    for field in required_fields:
+        if field not in data:
+            return f"Missing or Incorrect required field: {field}"
+    # Validate date format
+    try:
+        datetime.strptime(data["due_date"], "%Y-%m-%d")
+    except ValueError:
+        return "Invalid date format for due_date. Expected YYYY-MM-DD."
+    # Validate project_id exists
+    if not any(p["id"] == data["project_id"] for p in projects):
+        return "Invalid project_id. Project does not exist."
+    return None
+
 
 api.add_resource(ProjectResource, "/projects", "/projects/<int:project_id>")
-api.add_resource(TaskResource, "/tasks")
+api.add_resource(TaskResource, "/tasks", "/tasks/<int:task_id>", "/projects/<int:project_id>/tasks")
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5050) # port 5000 in use
-
-
-    """Bash output:
-parasjamil@Parass-MacBook-Pro project_tracker % curl -X POST http://127.0.0.1:5050/projects \
-  -H "Content-Type: application/json" \
-  -d '{"name":"AI Tracker","description":"Demo","start_date":"2025-07-28","end_date":"2025-08-28"}'
-{"name": "AI Tracker", "description": "Demo", "start_date": "2025-07-28", "end_date": "2025-08-28", "status": "new", "id": 1}
-parasjamil@Parass-MacBook-Pro project_tracker % curl http://127.0.0.1:5050/projects
-[{"name": "AI Tracker", "description": "Demo", "start_date": "2025-07-28", "end_date": "2025-08-28", "status": "new", "id": 1}]
-parasjamil@Parass-MacBook-Pro project_tracker % curl http://127.0.0.1:5050/projects/1
-{"name": "AI Tracker", "description": "Demo", "start_date": "2025-07-28", "end_date": "2025-08-28", "status": "new", "id": 1}
-    """
+    app.run(host="0.0.0.0", port=5050)  # port 5000 in use
