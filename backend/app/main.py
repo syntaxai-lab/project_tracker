@@ -21,6 +21,7 @@ EXPECTED_TASK_FIELDS = ["title", "assigned_to", "status", "due_date", "project_i
 
 
 class Project():
+    """Represents a project entity with basic fields."""
     def __init__(self, name, description, start_date, end_date, status='new'):
         self.name = name
         self.description = description
@@ -30,9 +31,10 @@ class Project():
 
 
 class ProjectResource(Resource):
+    """Handles HTTP requests for projects including creation, retrieval, and filtering."""
     def get(self, project_id=None):
         if project_id:
-            proj = next((p.casefold() for p in projects if p['id'] == project_id), None)
+            proj = next((p for p in projects if p['id'] == project_id), None)
             if proj:
                 proj_tasks = [t for t in tasks if t.get("project_id")
                               == project_id]
@@ -61,6 +63,7 @@ class ProjectResource(Resource):
 
 
 class TaskResource(Resource):
+    """Handles HTTP requests for tasks including creation, retrieval, and filtering."""
     def post(self):
         raw_data = request.get_json() or {}
         task_data = normalize_input(raw_data, EXPECTED_TASK_FIELDS)
@@ -95,7 +98,7 @@ class TaskResource(Resource):
 
 
 def normalize_input(data, expected_fields):
-    """Normalize keys to lowercase and map to expected fields."""
+    """Convert incoming JSON keys to lowercase and retain only expected fields."""
     normalized = {}
     for key, value in data.items():
         key_lower = key.lower()
@@ -105,7 +108,7 @@ def normalize_input(data, expected_fields):
 
 
 def validate_project_data(data):
-    """Validate required fields and date formats."""
+    """Validate project data, ensuring required fields exist and dates are formatted correctly."""
     required_fields = ["name", "description", "start_date", "end_date"]
     for field in required_fields:
         if field not in data:
@@ -121,7 +124,7 @@ def validate_project_data(data):
 
 
 def validate_task_data(data):
-    """Validate required fields and date formats."""
+    """Validate task data, ensuring required fields exist, dates are valid, and project_id is valid."""
     required_fields = ["title", "assigned_to", "due_date", "project_id"]
     for field in required_fields:
         if field not in data:
