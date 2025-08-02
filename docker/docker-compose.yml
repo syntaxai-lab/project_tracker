@@ -24,6 +24,19 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
   
+  seeder:
+    image: postgres:14
+    depends_on:
+      - db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: project_db
+      PGPASSWORD: password
+    volumes:
+      - ../sample_data:/sample_data
+    entrypoint: ["/bin/sh", "/sample_data/seed_db.sh"]
+    
   agent:
     build:
       context: ../agentic

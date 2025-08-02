@@ -55,5 +55,52 @@ This project runs entirely with Docker. You only need **Docker Desktop** install
      {'filters': {'status': 'overdue'}, 'results': [{'id': 2, 'title': 'Finish API', 'assigned_to': 'Bob', 'status': 'overdue', 'due_date': '2025-07-30', 'project_id': 1}]}
      ```
 
-5.. **Architecture Diagram**
+5. **Architecture Diagram**
 ![Architecture Diagram](architecture.drawio.png)
+
+---
+
+## Testing with Postman
+
+You can also test the backend API using the provided **Postman Collection**:
+
+1. Import the file `project_tracker_postman.json` into Postman.
+2. Start the containers with:
+   ```bash
+   docker compose up
+   ```
+3. Initialize the database by calling the `initdb` request in the collection.
+4. Use the `Create Project` and `Create Task` requests to add data.
+5. Test `Get Projects` and `Get Tasks` endpoints to verify filtering and retrieval.
+
+---
+
+## Interacting with the Database Directly
+
+To manually inspect or test the PostgreSQL database:
+
+1. Enter the running database container:
+   ```bash
+   docker exec -it project_tracker_db psql -U user -d project_db
+   ```
+2. Run SQL commands, for example:
+   ```sql
+   \dt          -- list tables
+   SELECT * FROM projects;
+   SELECT * FROM tasks;
+   ```
+3. Exit the database shell:
+   ```
+   \q
+   ```
+
+---
+
+## Tests Folder
+
+The `tests/` folder is included for adding unit or integration tests. Currently, it has no tests implemented.  
+You can add `pytest`-based tests here to verify API endpoints and MCP agent behavior, for example:
+
+```bash
+pytest tests/
+```

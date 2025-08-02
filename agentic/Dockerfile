@@ -9,4 +9,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy agentic code
 COPY . /agentic
 
-CMD ["python", "langgraph_agent/agent.py"]
+CMD ["python", "agent.py"]
