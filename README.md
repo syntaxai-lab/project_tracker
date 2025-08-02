@@ -43,3 +43,30 @@ Ensure the API container has the following environment variable set:
 DATABASE_URL=postgresql://user:password@db:5432/project_db
 ```
 ```
+
+### Example Agent Flow with LLM
+
+**User Prompt:**  
+"Show me all overdue tasks assigned to Bob"
+
+**Workflow:**  
+Prompt → LLM (extract filters) → MCP Tool → Flask API → JSON → Agent Response
+
+**Example Output:**  
+```json
+{
+  "filters": {
+    "assigned_to": "Bob",
+    "status": "overdue"
+  },
+  "results": [
+    {
+      "id": 1,
+      "title": "Fix deployment bug",
+      "assigned_to": "Bob",
+      "status": "overdue",
+      "due_date": "2025-07-30",
+      "project_id": 2
+    }
+  ]
+}

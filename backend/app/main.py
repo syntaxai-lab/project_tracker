@@ -18,9 +18,6 @@ api = Api(app)
 # Initialize DB
 init_db(app)
 
-
-
-
 EXPECTED_PROJECT_FIELDS = ["name", "description", "start_date", "end_date", "status"]
 EXPECTED_TASK_FIELDS = ["title", "assigned_to", "status", "due_date", "project_id"]
 
