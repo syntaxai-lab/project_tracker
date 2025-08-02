@@ -47,3 +47,16 @@ def fetch_tasks(filters, user_prompt=None):
     logging.info(f"[MCP] Fetching tasks with filters: {filters}")
     data = get_tasks(filters)
     return {"filters": filters, "results": data}
+
+
+def fetch_projects(filters, user_prompt=None):
+    """Return structured response for project-related queries."""
+    # Applying fallback extraction if filters are empty
+    if not filters and user_prompt:
+        lower_prompt = user_prompt.lower()
+        if "overdue" in lower_prompt:
+            filters["status"] = "overdue"
+
+    logging.info(f"[MCP] Fetching projects with filters: {filters}")
+    data = get_projects(filters)
+    return {"filters": filters, "results": data}
