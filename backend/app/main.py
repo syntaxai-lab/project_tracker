@@ -1,6 +1,7 @@
 from flask import Flask, request
 from flask_restful import Api, Resource
 from datetime import datetime
+from database import init_db, db, Project, Task
 
 
 """"1. Create a new project with the fields: name, description,
@@ -14,87 +15,111 @@ project_id
 app = Flask(__name__)
 api = Api(app)
 
-projects = []
-tasks = []
+# Initialize DB
+init_db(app)
+
+
+
+
 EXPECTED_PROJECT_FIELDS = ["name", "description", "start_date", "end_date", "status"]
 EXPECTED_TASK_FIELDS = ["title", "assigned_to", "status", "due_date", "project_id"]
-
-
-class Project():
-    """Represents a project entity with basic fields."""
-    def __init__(self, name, description, start_date, end_date, status='new'):
-        self.name = name
-        self.description = description
-        self.start_date = start_date
-        self.end_date = end_date
-        self.status = status
 
 
 class ProjectResource(Resource):
     """Handles HTTP requests for projects including creation, retrieval, and filtering."""
     def get(self, project_id=None):
-        if project_id:
-            proj = next((p for p in projects if p['id'] == project_id), None)
-            if proj:
-                proj_tasks = [t for t in tasks if t.get("project_id")
-                              == project_id]
-                proj["tasks"] = proj_tasks
-                return proj
-            return {"error": "Not found"}, 404
-        filters = request.args
-        results = projects
-        for key, value in filters.items():
-            results = [p for p in results if str(p.get(key)).lower() ==
-                       value.lower()]
-        return results
+        try:
+            if project_id:
+                proj = Project.query.get(project_id)
+                if proj:
+                    tasks_list = [t.as_dict() for t in proj.tasks]
+                    proj_dict = proj.as_dict()
+                    proj_dict["tasks"] = tasks_list
+                    return proj_dict
+                return {"error": "Not found"}, 404
+            query = Project.query
+            for key, value in request.args.items():
+                if not hasattr(Project, key):
+                    return {"error": f"Invalid filter field: {key}"}, 400
+                query = query.filter(getattr(Project, key).ilike(f"%{value}%"))
+            results = [p.as_dict() for p in query.all()]
+            return results
+        except Exception as e:
+            return {"error": f"Internal server error: {str(e)}"}, 500
 
     def post(self):
-        raw_data = request.get_json() or {}
-        project_data = normalize_input(raw_data, EXPECTED_PROJECT_FIELDS)
-        error_msg = validate_project_data(project_data)
-        if error_msg:
-            return {"error": error_msg}, 400
+        try:
+            raw_data = request.get_json() or {}
+            project_data = normalize_input(raw_data, EXPECTED_PROJECT_FIELDS)
+            error_msg = validate_project_data(project_data)
+            if error_msg:
+                return {"error": error_msg}, 400
 
-        proj = Project(**project_data)
-        new_project = proj.__dict__
-        new_project['id'] = len(projects) + 1
-        projects.append(new_project)
-        return new_project, 201
+            proj = Project(**project_data)
+            db.session.add(proj)
+            db.session.commit()
+            return proj.as_dict(), 201
+        except Exception as e:
+            db.session.rollback()
+            return {"error": f"Internal server error: {str(e)}"}, 500
 
 
 class TaskResource(Resource):
     """Handles HTTP requests for tasks including creation, retrieval, and filtering."""
     def post(self):
-        raw_data = request.get_json() or {}
-        task_data = normalize_input(raw_data, EXPECTED_TASK_FIELDS)
-        error_msg = validate_task_data(task_data)
-        if error_msg:
-            return {"error": error_msg}, 400
+        try:
+            raw_data = request.get_json() or {}
+            task_data = normalize_input(raw_data, EXPECTED_TASK_FIELDS)
+            error_msg = validate_task_data(task_data)
+            if error_msg:
+                return {"error": error_msg}, 400
 
-        new_task = {**task_data, "id": len(tasks) + 1}
-        tasks.append(new_task)
-        return new_task, 201
+            task = Task(**task_data)
+            db.session.add(task)
+            db.session.commit()
+            return task.as_dict(), 201
+        except Exception as e:
+            db.session.rollback()
+            return {"error": f"Internal server error: {str(e)}"}, 500
 
     def get(self, task_id=None, project_id=None):
-        if task_id:
-            task = next((t for t in tasks if t["id"] == task_id), None)
-            if task:
-                return task
-            return {"error": "Task not found"}, 404
-        if project_id:
-            project_exists = any(p["id"] == project_id for p in projects)
-            if not project_exists:
-                return {"error": "Project not found"}, 404
+        try:
+            if task_id:
+                task = Task.query.get(task_id)
+                if task:
+                    return task.as_dict()
+                return {"error": "Task not found"}, 404
+            if project_id:
+                proj = Project.query.get(project_id)
+                if not proj:
+                    return {"error": "Project not found"}, 404
+                return [t.as_dict() for t in proj.tasks]
+            query = Task.query
+            for key, value in request.args.items():
+                if not hasattr(Task, key):
+                    return {"error": f"Invalid filter field: {key}"}, 400
+                query = query.filter(getattr(Task, key).ilike(f"%{value}%"))
+            return [t.as_dict() for t in query.all()]
+        except Exception as e:
+            return {"error": f"Internal server error: {str(e)}"}, 500
 
-            project_tasks = [t for t in tasks if t.get("project_id") == project_id]
-            return project_tasks
-        # Otherwise return all (with optional filters)
-        filters = request.args
-        results = tasks
-        for key, value in filters.items():
-            results = [t for t in results if str(t.get(key)).lower()
-                       == value.lower()]
-        return results
+
+# --- Test Resource classes ---
+class InitDBResource(Resource):
+    """Handles manual initialization of the database tables."""
+    def get(self):
+        try:
+            with app.app_context():
+                db.create_all()
+            return {"message": "Database initialized!"}, 200
+        except Exception as e:
+            return {"error": f"Failed to initialize database: {str(e)}"}, 500
+
+
+class TestResource(Resource):
+    """Simple test endpoint to verify API is running."""
+    def get(self):
+        return {"message": "test route"}, 200
 
 
 def normalize_input(data, expected_fields):
@@ -135,13 +160,16 @@ def validate_task_data(data):
     except ValueError:
         return "Invalid date format for due_date. Expected YYYY-MM-DD."
     # Validate project_id exists
-    if not any(p["id"] == data["project_id"] for p in projects):
+    if not Project.query.get(data["project_id"]):
         return "Invalid project_id. Project does not exist."
     return None
 
 
+api.add_resource(InitDBResource, "/initdb")
+api.add_resource(TestResource, "/test")
 api.add_resource(ProjectResource, "/projects", "/projects/<int:project_id>")
 api.add_resource(TaskResource, "/tasks", "/tasks/<int:task_id>", "/projects/<int:project_id>/tasks")
+
 
 
 if __name__ == "__main__":

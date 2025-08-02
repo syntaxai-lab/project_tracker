@@ -1,0 +1,106 @@
+{
+  "info": {
+    "name": "Project Tracker API Tests",
+    "_postman_id": "7e48a91c-3e40-4b7a-9df8-pt-api-tests",
+    "description": "Collection to test all Project Tracker API endpoints with valid and invalid cases.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Project - Valid",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Project Alpha\",\n  \"description\": \"First project\",\n  \"start_date\": \"2025-08-05\",\n  \"end_date\": \"2025-09-05\",\n  \"status\": \"active\"\n}"
+        },
+        "url": { "raw": "http://localhost:5050/projects", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["projects"] }
+      }
+    },
+    {
+      "name": "Create Project - Missing Field",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"No name field here\",\n  \"start_date\": \"2025-08-05\",\n  \"end_date\": \"2025-09-05\"\n}"
+        },
+        "url": { "raw": "http://localhost:5050/projects", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["projects"] }
+      }
+    },
+    {
+      "name": "Create Project - Invalid Date Format",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Project Beta\",\n  \"description\": \"Invalid date\",\n  \"start_date\": \"05-08-2025\",\n  \"end_date\": \"2025-09-05\",\n  \"status\": \"active\"\n}"
+        },
+        "url": { "raw": "http://localhost:5050/projects", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["projects"] }
+      }
+    },
+    {
+      "name": "Get All Projects",
+      "request": { "method": "GET", "url": { "raw": "http://localhost:5050/projects", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["projects"] } }
+    },
+    {
+      "name": "Get Project by ID - Valid",
+      "request": { "method": "GET", "url": { "raw": "http://localhost:5050/projects/1", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["projects", "1"] } }
+    },
+    {
+      "name": "Get Project by ID - Not Found",
+      "request": { "method": "GET", "url": { "raw": "http://localhost:5050/projects/999", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["projects", "999"] } }
+    },
+    {
+      "name": "Create Task - Valid",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Setup API\",\n  \"assigned_to\": \"Alice\",\n  \"status\": \"pending\",\n  \"due_date\": \"2025-08-10\",\n  \"project_id\": 1\n}"
+        },
+        "url": { "raw": "http://localhost:5050/tasks", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["tasks"] }
+      }
+    },
+    {
+      "name": "Create Task - Invalid Project ID",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Orphan Task\",\n  \"assigned_to\": \"Bob\",\n  \"status\": \"pending\",\n  \"due_date\": \"2025-08-10\",\n  \"project_id\": 999\n}"
+        },
+        "url": { "raw": "http://localhost:5050/tasks", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["tasks"] }
+      }
+    },
+    {
+      "name": "Get All Tasks",
+      "request": { "method": "GET", "url": { "raw": "http://localhost:5050/tasks", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["tasks"] } }
+    },
+    {
+      "name": "Get Task by ID - Valid",
+      "request": { "method": "GET", "url": { "raw": "http://localhost:5050/tasks/1", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["tasks", "1"] } }
+    },
+    {
+      "name": "Get Task by ID - Not Found",
+      "request": { "method": "GET", "url": { "raw": "http://localhost:5050/tasks/999", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["tasks", "999"] } }
+    },
+    {
+      "name": "Get Tasks for Project",
+      "request": { "method": "GET", "url": { "raw": "http://localhost:5050/projects/1/tasks", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["projects", "1", "tasks"] } }
+    },
+    {
+      "name": "Filter Projects - Status Active",
+      "request": { "method": "GET", "url": { "raw": "http://localhost:5050/projects?status=active", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["projects"], "query": [{ "key": "status", "value": "active" }] } }
+    },
+    {
+      "name": "Filter Projects - Invalid Field",
+      "request": { "method": "GET", "url": { "raw": "http://localhost:5050/projects?unknownfield=test", "protocol": "http", "host": ["localhost"], "port": "5050", "path": ["projects"], "query": [{ "key": "unknownfield", "value": "test" }] } }
+    }
+  ]
+}

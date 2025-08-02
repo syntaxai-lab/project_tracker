@@ -1,5 +1,28 @@
 services:
   backend:
-    build: ./backend
+    build:
+      context: ../backend/app
+      dockerfile: Dockerfile
+    container_name: project_tracker_api
     ports:
-      - "5000:5000"
+      - "5050:5050"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/project_db
+
+  db:
+    image: postgres:14
+    container_name: project_tracker_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: project_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata: {}
