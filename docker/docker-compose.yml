@@ -23,6 +23,18 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+  
+  agent:
+    build:
+      context: ../agentic
+      dockerfile: Dockerfile
+    container_name: project_tracker_agent
+    depends_on:
+      - backend
+    env_file:
+      - .env
+    environment:
+      API_URL: http://backend:5050
 
 volumes:
   pgdata: {}
