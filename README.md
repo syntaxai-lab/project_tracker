@@ -55,3 +55,5 @@ This project runs entirely with Docker. You only need **Docker Desktop** install
      {'filters': {'status': 'overdue'}, 'results': [{'id': 2, 'title': 'Finish API', 'assigned_to': 'Bob', 'status': 'overdue', 'due_date': '2025-07-30', 'project_id': 1}]}
      ```
 
+5.. **Architecture Diagram**
+![Architecture Diagram](architecture.drawio.png)
