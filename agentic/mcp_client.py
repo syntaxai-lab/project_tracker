@@ -29,34 +29,27 @@ def get_projects(filters: dict):
         return {"error": str(e), "results": []}
 
 
-def fetch_tasks(filters, user_prompt=None):
+def fetch_tasks(filters):
     """Return structured response for the agent with smart prompt-based filter fallback."""
-    # Apply fallback extraction if filters are empty
-    if not filters and user_prompt:
-        lower_prompt = user_prompt.lower()
-        if "overdue" in lower_prompt:
-            filters["status"] = "overdue"
-        if "assigned to" in lower_prompt:
-            # crude extraction of name after 'assigned to'
-            parts = lower_prompt.split("assigned to")
-            if len(parts) > 1:
-                filters["assigned_to"] = parts[1].strip().split(" ")[0]
-        if "project" in lower_prompt:
-            filters["entity"] = "projects"
-
     logging.info(f"[MCP] Fetching tasks with filters: {filters}")
     data = get_tasks(filters)
     return {"filters": filters, "results": data}
 
 
-def fetch_projects(filters, user_prompt=None):
+def fetch_projects(filters):
     """Return structured response for project-related queries."""
-    # Applying fallback extraction if filters are empty
-    if not filters and user_prompt:
-        lower_prompt = user_prompt.lower()
-        if "overdue" in lower_prompt:
-            filters["status"] = "overdue"
-
     logging.info(f"[MCP] Fetching projects with filters: {filters}")
     data = get_projects(filters)
     return {"filters": filters, "results": data}
+
+
+def route_fetch(entity, filters, user_prompt=None):
+    """Route to the appropriate fetch function based on entity."""
+    if entity == "tasks":
+        return fetch_tasks(filters, user_prompt=user_prompt, entity=entity)
+    elif entity == "projects":
+        return fetch_projects(filters, user_prompt=user_prompt, entity=entity)
+
+    # Default fallback: return empty results when entity is unknown
+    logging.warning("[MCP] route_fetch called with unknown entity. Returning empty results.")
+    return {"filters": filters, "results": []}

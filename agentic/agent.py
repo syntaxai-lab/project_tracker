@@ -27,14 +27,14 @@ llm = ChatOpenAI(model=model_name, openai_api_key=api_key, temperature=0)
 def interpret_with_llm(state):
     """Use LLM to extract query filters and entity type."""
     user_query = state["prompt"]
-    
+
     system_prompt = (
         "You are an intelligent API query parser. "
-        "Your task is to analyze the user query and extract:\n"
-        "1. The entity type (either 'projects' or 'tasks')\n"
-        "2. Any filters: assigned_to, status, due_date\n"
-        "Return a strict JSON object only, without any explanations or extra text.\n"
-        "If a filter is not mentioned, omit it from the JSON.\n"
+        "Analyze the user query and return ONLY a flat JSON object with:\n"
+        "entity: 'projects' or 'tasks'\n"
+        "any filters: status, assigned_to, due_date\n\n"
+        "Example output:\n"
+        "{\"entity\": \"tasks\", \"status\": \"overdue\"}"
     )
 
     # Send combined system + user prompt
@@ -79,15 +79,9 @@ def run_agent():
                 print("Exiting agent.")
                 break
 
-            # Decide which endpoint to call based on user input
-            filters = {}
-            if "project" in user_input.lower():
-                filters["entity"] = "projects"
-            else:
-                filters["entity"] = "tasks"
-
-            response = call_api({"filters": filters, "prompt": user_input})
-            print(response["output"])
+            # Run the LLM → API pipeline
+            result = graph.invoke({"prompt": user_input, "filters": {}, "output": {}})
+            print(result["output"])
 
         except EOFError:
             print("\nEOF detected, exiting agent.")
