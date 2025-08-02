@@ -1,72 +1,57 @@
 # project_tracker
 AI-powered Project Tracker enabling agents to log tasks, fetch updates, and analyze progress via LLM queries. Includes a backend API for project data and an MCP tool connected to the LLM for status retrieval, filtering, and task management.
 
-## Setup Instructions
+## Setup Instructions (Using Docker)
 
-### Local Development (Optional)
-1. Install PostgreSQL on Mac using Homebrew:
+This project runs entirely with Docker. You only need **Docker Desktop** installed.
+
+### Steps to Run
+1. **Start containers** for the API and PostgreSQL:
    ```bash
-   brew install postgresql@14
-   brew services start postgresql@14
+   docker compose up --build
    ```
-2. Create the database:
+
+2. **Initialize the database** by calling the `/initdb` endpoint:
    ```bash
-   createdb project_db
+   curl http://localhost:5050/initdb
    ```
-3. Install dependencies:
+
+3. **(Optional) Add sample data** to the database:
+   - Create a project:
+     ```bash
+     curl -X POST http://localhost:5050/projects \
+       -H "Content-Type: application/json" \
+       -d '{"name":"AI Tracker","description":"Demo","start_date":"2025-07-28","end_date":"2025-08-28","status":"active"}'
+     ```
+   - Add a task to the project:
+     ```bash
+     curl -X POST http://localhost:5050/tasks \
+       -H "Content-Type: application/json" \
+       -d '{"title":"Finish API","assigned_to":"Bob","status":"overdue","due_date":"2025-07-30","project_id":1}'
+     ```
+
+4. **Run the agent** interactively to ask questions:
    ```bash
-   pip install -r requirements.txt
+   docker compose run agent python agent.py
    ```
-4. Run the Flask API:
-   ```bash
-   python backend/app/main.py
-   ```
+   - The CLI will prompt:
+     ```
+     ask your questions here:
+     ```
+   - Enter your question, for example:
+     ```
+     how many tasks are overdue
+     ```
+   - Example CLI output:
+     ```
+     [+] Creating 2/0
+      ✔ Container project_tracker_db   Running
+      ✔ Container project_tracker_api  Running
+     ask your questions here: how many tasks are overdue
+     INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+     INFO:root:[AGENT] Calling API with filters: {'status': 'overdue'}
+     INFO:root:[MCP] Fetching tasks with filters: {'status': 'overdue'}
+     INFO:root:[AGENT] API responded: {'filters': {'status': 'overdue'}, 'results': [{'id': 2, 'title': 'Finish API', 'assigned_to': 'Bob', 'status': 'overdue', 'due_date': '2025-07-30', 'project_id': 1}]}
+     {'filters': {'status': 'overdue'}, 'results': [{'id': 2, 'title': 'Finish API', 'assigned_to': 'Bob', 'status': 'overdue', 'due_date': '2025-07-30', 'project_id': 1}]}
+     ```
 
-### Using Docker Compose
-This project includes a Dockerized setup with separate containers for the API and PostgreSQL.
-
-1. Build and start containers:
-   ```bash
-   docker-compose up --build
-   ```
-2. The API will be available at:
-   ```
-   http://localhost:5050
-   ```
-3. PostgreSQL runs inside its own container and is automatically configured.
-
----
-
-### Environment Variables
-Ensure the API container has the following environment variable set:
-```
-DATABASE_URL=postgresql://user:password@db:5432/project_db
-```
-```
-
-### Example Agent Flow with LLM
-
-**User Prompt:**  
-"Show me all overdue tasks assigned to Bob"
-
-**Workflow:**  
-Prompt → LLM (extract filters) → MCP Tool → Flask API → JSON → Agent Response
-
-**Example Output:**  
-```json
-{
-  "filters": {
-    "assigned_to": "Bob",
-    "status": "overdue"
-  },
-  "results": [
-    {
-      "id": 1,
-      "title": "Fix deployment bug",
-      "assigned_to": "Bob",
-      "status": "overdue",
-      "due_date": "2025-07-30",
-      "project_id": 2
-    }
-  ]
-}

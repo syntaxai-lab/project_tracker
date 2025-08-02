@@ -2,6 +2,7 @@ from flask import Flask, request
 from flask_restful import Api, Resource
 from datetime import datetime
 from database import init_db, db, Project, Task
+from sqlalchemy import String
 
 
 """"1. Create a new project with the fields: name, description,
@@ -81,22 +82,32 @@ class TaskResource(Resource):
 
     def get(self, task_id=None, project_id=None):
         try:
+            # Retrieve a single task by ID
             if task_id:
                 task = Task.query.get(task_id)
-                if task:
-                    return task.as_dict()
-                return {"error": "Task not found"}, 404
+                return task.as_dict() if task else ({"error": "Task not found"}, 404)
+
+            # Retrieve tasks for a specific project
             if project_id:
                 proj = Project.query.get(project_id)
                 if not proj:
                     return {"error": "Project not found"}, 404
                 return [t.as_dict() for t in proj.tasks]
+
+            # Filter tasks based on query parameters
             query = Task.query
             for key, value in request.args.items():
-                if not hasattr(Task, key):
+                column = getattr(Task, key, None)
+                if column is None:
                     return {"error": f"Invalid filter field: {key}"}, 400
-                query = query.filter(getattr(Task, key).ilike(f"%{value}%"))
-            return [t.as_dict() for t in query.all()]
+                # Use ilike for string fields, exact match otherwise
+                if hasattr(column.type, "python_type") and column.type.python_type == str:
+                    query = query.filter(column.ilike(f"%{value}%"))
+                else:
+                    query = query.filter(column == value)
+
+            results = [t.as_dict() for t in query.all()]
+            return results
         except Exception as e:
             return {"error": f"Internal server error: {str(e)}"}, 500
 
