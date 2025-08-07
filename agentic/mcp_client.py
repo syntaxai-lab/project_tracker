@@ -43,12 +43,12 @@ def fetch_projects(filters):
     return {"filters": filters, "results": data}
 
 
-def route_fetch(entity, filters, user_prompt=None):
+def route_fetch(entity, filters):
     """Route to the appropriate fetch function based on entity."""
     if entity == "tasks":
-        return fetch_tasks(filters, user_prompt=user_prompt, entity=entity)
+        return fetch_tasks(filters)
     elif entity == "projects":
-        return fetch_projects(filters, user_prompt=user_prompt, entity=entity)
+        return fetch_projects(filters)
 
     # Default fallback: return empty results when entity is unknown
     logging.warning("[MCP] route_fetch called with unknown entity. Returning empty results.")

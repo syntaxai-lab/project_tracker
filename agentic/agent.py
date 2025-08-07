@@ -3,7 +3,7 @@ import json
 import logging
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph
-from mcp_client import fetch_tasks, fetch_projects
+from mcp_client import route_fetch
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 
@@ -61,10 +61,7 @@ def call_api(state):
     entity = filters.pop("entity", "tasks")
     logging.info(f"[AGENT] Calling API for entity={entity} with filters: {filters}")
 
-    if entity == "projects":
-        results = fetch_projects(filters)
-    else:
-        results = fetch_tasks(filters)
+    results = route_fetch(entity, filter)
 
     logging.info(f"[AGENT] API responded: {results}")
     return {"output": results}
